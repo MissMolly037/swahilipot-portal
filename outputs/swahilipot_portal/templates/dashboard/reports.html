@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<div class="d-flex align-items-start justify-content-between mb-4 flex-wrap gap-3">
+  <div>
+    <h1 class="page-header mb-1" style="font-size:1.65rem;margin:0 0 6px">
+      <i class="bi bi-file-earmark-bar-graph me-2 text-primary"></i>Reports Centre
+    </h1>
+    <p class="text-muted small mb-0">
+      Download PDF and Excel reports for every section of the portal.
+      Use the date filter to narrow results by date range.
+    </p>
+  </div>
+
+  <!-- Branding block -->
+  <div class="swp-report-brand">
+    <img
+      src="https://swahilipothub.co.ke/wp-content/uploads/2021/06/Swahilipot-logo-Trans.png"
+      alt="Swahilipot Logo"
+      class="swp-brand-logo"
+      id="swpLogo"
+      onerror="this.src='{% static 'images/swahilipot-logo.jfif' %}';this.onerror=null"
+    >
+    <div class="swp-brand-info">
+      <div class="swp-brand-name">Swahilipot Hub Foundation</div>
+      <div class="swp-brand-tagline">Empowering Youth Through Technology &amp; Arts</div>
+      <div class="swp-brand-contact">
+        <i class="bi bi-geo-alt-fill me-1"></i>Mombasa County Governor's Office
+        &nbsp;·&nbsp;
+        <a href="https://www.swahilipothub.co.ke" target="_blank" class="swp-brand-link">swahilipothub.co.ke</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Date filter -->
+<form class="panel mb-4" method="get">
+  <div class="d-flex align-items-center gap-2 mb-2">
+    <i class="bi bi-calendar-range text-primary"></i>
+    <span class="fw-semibold" style="font-size:.88rem">Date Range Filter</span>
+    <span class="text-muted small">(applies to all date-based reports)</span>
+  </div>
+  <div class="row g-3">
+    <div class="col-md-4">
+      <label class="form-label small fw-semibold">Start Date</label>
+      <input class="form-control" type="date" name="start" value="{{ request.GET.start }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label small fw-semibold">End Date</label>
+      <input class="form-control" type="date" name="end" value="{{ request.GET.end }}">
+    </div>
+    <div class="col-md-4 d-flex align-items-end gap-2">
+      <button class="btn btn-primary flex-fill">
+        <i class="bi bi-funnel me-1"></i>Apply Filter
+      </button>
+      <a href="{% url 'dashboard:reports' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-x-lg"></i>
+      </a>
+    </div>
+  </div>
+</form>
+
+<!-- ── Report sections ─────────────────────────────────────────────────── -->
+
+<!-- Attendance -->
+<div class="report-section mb-3">
+  <div class="report-section-header">
+    <i class="bi bi-geo-alt-fill"></i>
+    <div>
+      <div class="report-section-title">Attendance</div>
+      <div class="report-section-desc">All staff check-in / check-out records with hours and arrival/departure status.</div>
+    </div>
+  </div>
+  <div class="report-btns">
+    <a class="btn btn-outline-danger"
+       href="{% url 'dashboard:report_download' 'attendance' 'pdf' %}?{{ request.GET.urlencode }}">
+      <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+    </a>
+    <a class="btn btn-outline-success"
+       href="{% url 'dashboard:report_download' 'attendance' 'xlsx' %}?{{ request.GET.urlencode }}">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i>Excel
+    </a>
+  </div>
+</div>
+
+<!-- Geofence Violations -->
+<div class="report-section mb-3">
+  <div class="report-section-header">
+    <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+    <div>
+      <div class="report-section-title">Geofence Violations</div>
+      <div class="report-section-desc">All instances where staff left the approved site perimeter while checked in, with distances and resolution status.</div>
+    </div>
+  </div>
+  <div class="report-btns">
+    <a class="btn btn-outline-danger"
+       href="{% url 'attendance:geofence_violations_report' 'pdf' %}">
+      <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+    </a>
+    <a class="btn btn-outline-success"
+       href="{% url 'attendance:geofence_violations_report' 'xlsx' %}">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i>Excel
+    </a>
+  </div>
+</div>
+
+<!-- Location Timeout -->
+<div class="report-section mb-3">
+  <div class="report-section-header">
+    <i class="bi bi-clock-history text-warning"></i>
+    <div>
+      <div class="report-section-title">Location Timeout (All Users)</div>
+      <div class="report-section-desc">All staff location on/off events, durations, and whether they were resolved. Useful for monitoring GPS availability.</div>
+    </div>
+  </div>
+  <div class="report-btns">
+    <a class="btn btn-outline-danger"
+       href="{% url 'dashboard:report_download' 'location_timeout' 'pdf' %}?{{ request.GET.urlencode }}">
+      <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+    </a>
+    <a class="btn btn-outline-success"
+       href="{% url 'dashboard:report_download' 'location_timeout' 'xlsx' %}?{{ request.GET.urlencode }}">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i>Excel
+    </a>
+  </div>
+</div>
+
+<!-- Tasks -->
+<div class="report-section mb-3">
+  <div class="report-section-header">
+    <i class="bi bi-check2-square text-primary"></i>
+    <div>
+      <div class="report-section-title">Tasks</div>
+      <div class="report-section-desc">Task assignments, priorities, statuses, and due dates — scoped to your role's visibility.</div>
+    </div>
+  </div>
+  <div class="report-btns">
+    <a class="btn btn-outline-danger"
+       href="{% url 'dashboard:report_download' 'tasks' 'pdf' %}?{{ request.GET.urlencode }}">
+      <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+    </a>
+    <a class="btn btn-outline-success"
+       href="{% url 'dashboard:report_download' 'tasks' 'xlsx' %}?{{ request.GET.urlencode }}">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i>Excel
+    </a>
+  </div>
+</div>
+
+<!-- Events -->
+<div class="report-section mb-3">
+  <div class="report-section-header">
+    <i class="bi bi-calendar-event-fill text-info"></i>
+    <div>
+      <div class="report-section-title">Events</div>
+      <div class="report-section-desc">Event titles, locations, dates, registration counts, and attendance figures.</div>
+    </div>
+  </div>
+  <div class="report-btns">
+    <a class="btn btn-outline-danger"
+       href="{% url 'dashboard:report_download' 'events' 'pdf' %}?{{ request.GET.urlencode }}">
+      <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+    </a>
+    <a class="btn btn-outline-success"
+       href="{% url 'dashboard:report_download' 'events' 'xlsx' %}?{{ request.GET.urlencode }}">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i>Excel
+    </a>
+  </div>
+</div>
+
+<!-- Suggestions -->
+<div class="report-section mb-3">
+  <div class="report-section-header">
+    <i class="bi bi-lightbulb-fill text-warning"></i>
+    <div>
+      <div class="report-section-title">Suggestions</div>
+      <div class="report-section-desc">Staff-submitted suggestions with categories, statuses, and submission dates.</div>
+    </div>
+  </div>
+  <div class="report-btns">
+    <a class="btn btn-outline-danger"
+       href="{% url 'dashboard:report_download' 'suggestions' 'pdf' %}?{{ request.GET.urlencode }}">
+      <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+    </a>
+    <a class="btn btn-outline-success"
+       href="{% url 'dashboard:report_download' 'suggestions' 'xlsx' %}?{{ request.GET.urlencode }}">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i>Excel
+    </a>
+  </div>
+</div>
+
+<style>
+/* ── Report page layout ──────────────────────────────────────────────── */
+.report-section {
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  transition: box-shadow .2s, border-color .2s;
+}
+.report-section:hover {
+  border-color: #bfdbfe;
+  box-shadow: 0 2px 12px rgba(30,64,175,.08);
+}
+.report-section-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+.report-section-header > i {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  color: #1e40af;
+}
+.report-section-title {
+  font-size: .95rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 2px;
+}
+.report-section-desc {
+  font-size: .78rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+.report-btns {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.report-btns .btn {
+  font-size: .82rem;
+  padding: 6px 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── Branding block ──────────────────────────────────────────────────── */
+.swp-report-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  border: 1.5px solid #dbeafe;
+  border-radius: 12px;
+  padding: 14px 18px;
+  box-shadow: 0 1px 6px rgba(30,64,175,.07);
+  flex-shrink: 0;
+}
+.swp-brand-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  object-fit: contain;
+  border: 1.5px solid #e0e7ff;
+  background: #f0f4ff;
+  padding: 6px;
+  flex-shrink: 0;
+}
+.swp-brand-name { font-size: .92rem; font-weight: 800; color: #1e40af; margin-bottom: 2px; }
+.swp-brand-tagline { font-size: .7rem; color: #374151; margin-bottom: 3px; }
+.swp-brand-contact { font-size: .67rem; color: #6b7280; }
+.swp-brand-link { color: #1e40af; text-decoration: none; font-weight: 600; }
+.swp-brand-link:hover { text-decoration: underline; }
+
+@media(max-width:640px) {
+  .report-section { flex-direction: column; align-items: flex-start; }
+  .swp-report-brand { width: 100%; flex-direction: column; align-items: flex-start; }
+}
+</style>
+
+{% endblock %}

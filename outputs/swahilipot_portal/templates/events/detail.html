@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <h1>{{ event.title }}</h1>
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    {% if event.is_past %}
+      <span class="badge text-bg-secondary">Event Ended</span>
+    {% elif event.is_full %}
+      <span class="badge text-bg-danger">Fully Booked</span>
+    {% else %}
+      <span class="badge text-bg-success">Upcoming</span>
+    {% endif %}
+    <!-- Live registration counter — updated every 30 s via JS -->
+    <span class="badge bg-primary" id="reg-count-badge">
+      {{ event.registration_count }}/{{ event.capacity }} registered
+    </span>
+    {% if event.form_response_count > 0 %}
+    <span class="badge text-bg-info" title="Google Form responses received">
+      <i class="bi bi-google me-1"></i>{{ event.form_response_count }} form response{{ event.form_response_count|pluralize }}
+    </span>
+    {% endif %}
+  </div>
+</div>
+<div class="grid-2">
+  <div class="panel">
+    <p>{{ event.description }}</p>
+    <p>
+      <strong>Location:</strong> {{ event.location }}<br>
+      <strong>Starts:</strong> {{ event.start_date }}<br>
+      <strong>Ends:</strong> {{ event.end_date }}
+    </p>
+
+    <!-- Event ID — matches what gets pre-filled into the Google Form -->
+    <div class="d-inline-flex align-items-center gap-2 px-3 py-2 mb-3"
+         style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:.85rem">
+      <i class="bi bi-hash text-primary"></i>
+      <span class="text-muted">Event ID:</span>
+      <strong class="text-primary">{{ event.pk }}</strong>
+      <span class="text-muted" style="font-size:.72rem">(pre-filled in registration form)</span>
+    </div>
+
+    {% if event.is_past %}
+    <div class="alert alert-secondary py-2 px-3 mb-3">
+      <i class="bi bi-calendar-x me-1"></i>
+      This event has ended. You can view it for reference, but registration is closed.
+    </div>
+    {% else %}
+      {% if registered %}
+      <div class="alert alert-success py-2 px-3 mb-3">
+        <i class="bi bi-check-circle-fill me-1"></i>
+        <strong>You are registered</strong> for this event.
+        <form method="post" action="{% url 'events:cancel' event.pk %}" class="mt-2 mb-0">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-x-circle me-1"></i>Cancel Registration
+          </button>
+        </form>
+      </div>
+      {% elif event.is_full %}
+      <div class="alert alert-danger py-2 px-3 mb-3" id="full-alert">
+        <i class="bi bi-people-fill me-1"></i>
+        <strong>This event is fully booked.</strong>
+        Registration has automatically closed — maximum capacity reached.
+      </div>
+      {% else %}
+      <form method="post" action="{% url 'events:register' event.pk %}" id="register-form">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary" id="register-btn">
+          <i class="bi bi-person-plus me-1"></i>Register for Event
+        </button>
+      </form>
+      {% endif %}
+    {% endif %}
+
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      {% if user.can_manage_events %}
+      <a class="btn btn-outline-primary" href="{% url 'events:report' event.pk 'pdf' %}">
+        <i class="bi bi-file-earmark-pdf me-1"></i>PDF Report
+      </a>
+      <a class="btn btn-outline-primary" href="{% url 'events:report' event.pk 'xlsx' %}">
+        <i class="bi bi-file-earmark-spreadsheet me-1"></i>Excel Report
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="panel text-center">
+    <h2><i class="bi bi-qr-code me-2"></i>
+      {% if event.is_past %}Event QR Code{% else %}Scan to Register{% endif %}
+    </h2>
+    <p class="text-muted small mb-3">
+      {% if event.is_past %}
+        This event has ended. The QR code is kept here for reference.
+      {% elif event.is_full %}
+        This event is fully booked. The QR code is shown for reference only.
+      {% else %}
+        Scan the QR code with your phone camera to register for this event.
+      {% endif %}
+    </p>
+
+    {% if event.qr_code %}
+    <img src="{{ event.qr_code.url }}"
+         class="img-fluid mb-3 {% if event.is_past or event.is_full %}qr-closed{% endif %}"
+         style="max-width:260px;border-radius:8px;border:2px solid #e5e7eb"
+         alt="Event QR code">
+    {% else %}
+    <div class="text-muted my-4"><i class="bi bi-qr-code fs-1"></i><p>QR code not yet generated</p></div>
+    {% endif %}
+
+    <!-- Live capacity bar -->
+    {% if not event.is_past %}
+    <div class="capacity-bar-wrap mb-3">
+      <div class="capacity-bar-track">
+        <div class="capacity-bar-fill {% if event.is_full %}full{% endif %}"
+             id="cap-bar"
+             style="width: {% widthratio event.registration_count event.capacity 100 %}%">
+        </div>
+      </div>
+      <div class="capacity-bar-label" id="cap-label">
+        <span id="cap-count">{{ event.registration_count }}</span> / {{ event.capacity }} spots filled
+        {% if event.is_full %}<span class="text-danger fw-bold ms-1">— FULL</span>{% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if event.is_past %}
+    <div class="alert alert-secondary py-2 px-3 mb-3">
+      <i class="bi bi-lock me-1"></i>
+      Registration closed — event has ended.
+    </div>
+    {% elif event.is_full %}
+    <div class="alert alert-danger py-2 px-3 mb-3" id="qr-full-alert">
+      <i class="bi bi-slash-circle me-1"></i>
+      <strong>Registration closed</strong> — maximum capacity reached.
+    </div>
+    {% elif attended %}
+    <div class="alert alert-success py-2 px-3 mb-3">
+      <i class="bi bi-check-circle-fill me-1"></i>
+      <strong>You are registered</strong> — attendance recorded.
+    </div>
+    {% else %}
+    <p class="text-muted small mb-3">
+      <i class="bi bi-phone me-1"></i>Point your phone camera at the QR code to open the registration form.
+    </p>
+    {% endif %}
+
+    {% if not event.is_past and not event.is_full %}
+    <!-- Direct link opens the pre-filled Google Form (event ID pre-filled) -->
+    <a href="{{ portal_qr_url }}"
+       class="btn btn-outline-success btn-sm mb-2 w-100">
+      <i class="bi bi-pencil-square me-1"></i>Register via Form (Portal)
+    </a>
+    {% endif %}
+
+    {% if event.form_response_count %}
+    <div class="form-response-counter mt-3">
+      <div class="frc-label">Google Form Responses</div>
+      <div class="frc-count">{{ event.form_response_count }}</div>
+      <div class="frc-sub">auto-updated when form is submitted</div>
+    </div>
+    {% endif %}
+
+    {% if user.can_manage_events %}
+    <form method="post" action="{% url 'events:regenerate_qr' event.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline-secondary btn-sm w-100 mt-1">
+        <i class="bi bi-arrow-clockwise me-1"></i>Regenerate QR Code
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.qr-closed{filter:grayscale(70%);opacity:.6}
+.form-response-counter{
+  background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;
+  padding:12px 16px;text-align:center;margin-top:12px;
+}
+.frc-label{font-size:.72rem;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.frc-count{font-size:2rem;font-weight:800;color:#1e40af;line-height:1}
+.frc-sub{font-size:.68rem;color:#6b7280;margin-top:2px}
+
+/* Capacity bar */
+.capacity-bar-wrap{text-align:left}
+.capacity-bar-track{
+  height:10px;background:#e5e7eb;border-radius:20px;overflow:hidden;margin-bottom:4px;
+}
+.capacity-bar-fill{
+  height:100%;background:linear-gradient(90deg,#1e40af,#3b82f6);
+  border-radius:20px;transition:width .6s ease;
+}
+.capacity-bar-fill.full{background:linear-gradient(90deg,#dc2626,#ef4444)}
+.capacity-bar-label{font-size:.78rem;color:#6b7280;text-align:center}
+</style>
+
+{% if not event.is_past %}
+<script>
+// ── Live registration count polling ──────────────────────────────────────
+(function() {
+  var eventPk   = {{ event.pk }};
+  var capacity  = {{ event.capacity }};
+  var badge     = document.getElementById('reg-count-badge');
+  var capBar    = document.getElementById('cap-bar');
+  var capCount  = document.getElementById('cap-count');
+  var capLabel  = document.getElementById('cap-label');
+  var regForm   = document.getElementById('register-form');
+  var fullAlert = document.getElementById('full-alert');
+  var qrFull    = document.getElementById('qr-full-alert');
+
+  function poll() {
+    fetch('/events/' + eventPk + '/registration-count/', {
+      headers: {'X-Requested-With': 'XMLHttpRequest'}
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      // Update badge
+      if (badge) badge.textContent = data.count + '/' + capacity + ' registered';
+
+      // Update capacity bar
+      var pct = capacity > 0 ? Math.min(100, Math.round(data.count / capacity * 100)) : 0;
+      if (capBar) {
+        capBar.style.width = pct + '%';
+        if (data.is_full) capBar.classList.add('full');
+        else capBar.classList.remove('full');
+      }
+      if (capCount) capCount.textContent = data.count;
+
+      // If just became full, hide register form and show full alert
+      if (data.is_full) {
+        if (regForm) regForm.style.display = 'none';
+        if (fullAlert) fullAlert.style.display = '';
+        if (qrFull) qrFull.style.display = '';
+        // Update badge colour
+        if (badge) {
+          badge.className = 'badge bg-danger';
+        }
+      }
+    })
+    .catch(function() {});
+  }
+
+  // Poll every 30 seconds
+  setTimeout(function loop() { poll(); setTimeout(loop, 30000); }, 30000);
+})();
+</script>
+{% endif %}
+{% endblock %}
